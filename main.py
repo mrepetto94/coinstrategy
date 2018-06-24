@@ -23,39 +23,45 @@ df = pd.DataFrame(ret,
 df.Price = pd.to_numeric(df.Price)
 df.Time = pd.to_datetime(df.Time, unit ='s')
 
-###Backtesting###
+#split the df in training and testing
+df_training =df.iloc[:799,:]
+df_testing = df.iloc[800:,:]
 
-i = 1
-test = []
-pvalue = []
-result = []
-l = 250
-while i<=(999-l) :
-    result = adfuller(df.Price[i:(i+l)], autolag = 't-stat')
-    test.append(result[0])
-    pvalue.append(result[1])
+
+###Backtesting###
+#i = 1
+#test = []
+#pvalue = []
+# result = []
+#l = 250
+#while i<=(999-l) :
+#    result = adfuller(df.Price[i:(i+l)], autolag = 't-stat')
+#`    test.append(result[0])
+#   pvalue.append(result[1])
+#    i+=1
+
+#Calculate the hedgeratio
+df["HedgeRatio"] =  (df.Price -df.Price.mean())/df.Price.std()
+df.HedgeRatio = df.HedgeRatio / max(abs(df.HedgeRatio))
+df.HedgeRatio = (-1) * df.HedgeRatio
+
+i = 0
+portfolio = [1,0]
+pnl = []
+while i <= 998:
+    if df.HedgeRatio[i] >= 0 :
+        portfolio[1] = portfolio[1] + ((portfolio[0]/df.Price[i])*df.HedgeRatio[i])
+        portfolio[0] = portfolio[0] * (1-df.HedgeRatio[i])
+        print("BUY")
+    else:
+        portfolio[0] = portfolio [0] + ((portfolio[1]*df.Price[i])*(abs(df.HedgeRatio[1])))
+        portfolio[1] = portfolio[1] * (1-abs(df.HedgeRatio[i]))
+        print("SELL")
+    pnl.append(portfolio[0] + portfolio[1]*df.Price[i])
+    time.sleep(0.2)
     i+=1
 
-#plot1= plt.subplot2grid((3,1),(0,0))
-#plot1.plot(df.Price)
-#plot2= plt.subplot2grid((3,1),(1,0))
-#plot2.plot(test)
-#plot3= plt.subplot2grid((3,1),(2,0))
-#plot3.plot(pvalue)
-#plt.show()
+
 
 ###Backtesting a random strategy###
-i = 1
-store = 0
-profit = []
-while i<=999 :
-    if store > 0 :
 
-        if random.random() >= 0.5 :
-            pl = df.Price[i] - store
-            store = 0
-            profit.append(pl)
-    else:
-        if random.random() >= 0.5 :
-            store = df.Price[i]
-    i += 1
